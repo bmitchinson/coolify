@@ -1,14 +1,14 @@
+networks:
+  coolify:
+    external: true
+    name: coolify
+
 services:
   loki:
     image: grafana/loki:2.9.0
-    container_name: loki
-    ports:
-      - "4000:3100"
     command: -config.file=/loki/local-config.yml
     volumes:
-      # - /mnt/user/homeshare_private/appdata/loki:/loki
       - /srv/loki:/loki
-
     healthcheck:
       test:
         ["CMD-SHELL", "wget -q --spider http://localhost:3100/ready || exit 1"]
@@ -16,16 +16,21 @@ services:
       timeout: 5s
       retries: 5
       start_period: 15s
+    networks:
+      - coolify
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=coolify
+      - traefik.http.routers.loki.rule=Host(`loki.mitchinson.dev`)
+      - traefik.http.routers.loki.tls.certresolver=letsencrypt
+      - traefik.http.services.loki.loadbalancer.server.port=3100
+      - traefik.http.middlewares.loki-auth.basicauth.users=user:$2y$05$uN7SvzlwuOC9U4UIUevuNeqSSKVTWS/0LgpxmoTvuDSLDeYLhIxLK
+      - traefik.http.routers.loki.middlewares=loki-auth@docker
 
   grafana:
     image: grafana/grafana:11.2.0
-    container_name: grafana
-    ports:
-      - "4001:3000"
     volumes:
-      # - /mnt/user/homeshare_private/appdata/grafana:/var/lib/grafana
       - /srv/grafana:/var/lib/grafana
-      # - /mnt/user/homeshare_private/appdata/grafana/provisioning:/etc/grafana/provisioning
       - /srv/grafana/provisioning:/etc/grafana/provisioning
     environment:
       - GF_SECURITY_ADMIN_USER=admin
@@ -42,3 +47,11 @@ services:
     depends_on:
       loki:
         condition: service_healthy
+    networks:
+      - coolify
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=coolify
+      - traefik.http.routers.grafana.rule=Host(`dash.mitchinson.dev`)
+      - traefik.http.routers.grafana.tls.certresolver=letsencrypt
+      - traefik.http.services.grafana.loadbalancer.server.port=3000

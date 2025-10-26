@@ -1,0 +1,65 @@
+# /srv/loki/loki-config.yml
+
+# Disable authentication (good for local/dev; secure with reverse proxy in prod)
+auth_enabled: false
+
+server:
+  # Loki HTTP API listens on this port (mapped to 4000 in docker-compose)
+  http_listen_port: 3100
+
+ingester:
+  lifecycler:
+    ring:
+      kvstore:
+        # Use in-memory KV store for single-node Loki (no Consul/Etcd)
+        store: inmemory
+      # Replication factor: 1 since we only have one Loki node
+      replication_factor: 1
+  # Loki writes incoming log lines into an in-memory chunk right away. Those in-memory chunks are queryable as soon as data arrives.
+  # The following is just when they're written from memory.
+  # Close log chunks if idle for this long
+  chunk_idle_period: 5m
+  # Maximum age for a chunk before it’s flushed
+  max_chunk_age: 1h
+  # Target chunk size before flushing to storage (in bytes)
+  chunk_target_size: 1048576
+  # How long to keep flushed chunks in memory cache
+  chunk_retain_period: 30s
+  wal:
+    # Disable Write-Ahead Log (simpler, less durable, but fine for small dev setup)
+    enabled: false
+
+schema_config:
+  configs:
+    - from: 2020-10-24
+      # Store index data using boltdb-shipper (simpler than Cassandra/Dynamo)
+      store: boltdb-shipper
+      # Object store backend (filesystem in this case)
+      object_store: filesystem
+      # Schema version (v11 is the stable default)
+      schema: v11
+      index:
+        # Prefix for index files
+        prefix: index_
+        # Each index covers one day
+        period: 24h
+
+storage_config:
+  boltdb_shipper:
+    # Directory for active index files
+    active_index_directory: /loki/index
+    # Cache directory for query results
+    cache_location: /loki/cache
+    # Shared store backend (filesystem in this case)
+    shared_store: filesystem
+  filesystem:
+    # Directory where chunks are stored
+    directory: /loki/chunks
+
+compactor:
+  working_directory: /loki/compactor
+  shared_store: filesystem
+
+limits_config:
+  # Retention period for log data (365 days = 8760h)
+  retention_period: 8760h

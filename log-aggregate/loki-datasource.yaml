@@ -1,0 +1,11 @@
+# /srv/grafana/provisioning/datasources/loki-datasource.yml
+
+apiVersion: 1
+datasources:
+  - uid: loki
+    name: Loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    isDefault: true
+    editable: false

@@ -6,6 +6,7 @@ auth_enabled: false
 server:
   # Loki HTTP API listens on this port (mapped to 4000 in docker-compose)
   http_listen_port: 3100
+  graceful_shutdown_timeout: 30s
 
 ingester:
   lifecycler:
@@ -18,7 +19,7 @@ ingester:
   # Loki writes incoming log lines into an in-memory chunk right away. Those in-memory chunks are queryable as soon as data arrives.
   # The following is just when they're written from memory.
   # Close log chunks if idle for this long
-  chunk_idle_period: 5m
+  chunk_idle_period: 2m
   # Maximum age for a chunk before it’s flushed
   max_chunk_age: 1h
   # Target chunk size before flushing to storage (in bytes)
@@ -26,8 +27,8 @@ ingester:
   # How long to keep flushed chunks in memory cache
   chunk_retain_period: 30s
   wal:
-    # Disable Write-Ahead Log (simpler, less durable, but fine for small dev setup)
-    enabled: false
+    enabled: true
+    dir: /loki/wal
 
 schema_config:
   configs:
